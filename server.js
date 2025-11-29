@@ -10,37 +10,76 @@ app.use(express.static(path.join(__dirname, "public")));
 
 let baseline = Math.floor(Math.random() * (75 - 69 + 1)) + 69;
 let hr = baseline;
-let spike = false;
-let spikeProgress = 0;
+let targetHR = baseline;
+let mode = "normal"; // "normal", "loud", "persistent"
+let timeInState = 0;
 
-// Update HR continuously every 500 ms
+function smoothStep(current, target, factor = 0.08) {
+  return current + (target - current) * factor;
+}
+
 setInterval(() => {
-  if (spike) {
-    // Simulate a rising spike
-    if (spikeProgress < 20) {
-      hr += Math.random() * 2;         // climb gradually
-      spikeProgress++;
-    } else {
-      spike = false;
-      spikeProgress = 0;
-    }
-  } else {
-    // Normal baseline with slight jitter
-    hr = baseline + (Math.random() * 10 - 5);
+  timeInState += 0.5; // update every 500 ms
+
+  switch (mode) {
+    case "normal":
+      if (timeInState < 120) {
+        // baseline learning
+        hr = smoothStep(hr, baseline + (Math.random() * 2 - 1), 0.1);
+      } else {
+        const drift = Math.random() * 0.2 - 0.1;
+        targetHR = baseline + drift;
+        hr = smoothStep(hr, targetHR, 0.1);
+      }
+      break;
+
+    case "loud":
+      if (timeInState <= 10) targetHR = baseline + 15;          // rise
+      else if (timeInState <= 30) targetHR = baseline;          // recover
+      else resetToNormal();
+      hr = smoothStep(hr, targetHR, 0.2);
+      break;
+
+    case "persistent":
+      if (timeInState <= 60) targetHR = baseline + (timeInState / 60) * 10; // slow climb
+      else if (timeInState <= 120) targetHR = baseline + 10;                // sustain
+      else if (timeInState <= 180) targetHR = baseline;                     // recover
+      else resetToNormal();
+      hr = smoothStep(hr, targetHR, 0.1);
+      break;
   }
+
 }, 500);
 
-// Endpoint the watch will call
+function resetToNormal() {
+  mode = "normal";
+  timeInState = 0;
+  targetHR = baseline;
+}
+
+// API endpoints
 app.get("/hr", (req, res) => {
-  res.json({ hr: Math.round(hr) });
+  res.json({ hr: Math.round(hr), mode, baseline });
 });
 
-// Trigger the spike
-app.post("/spike", (req, res) => {
-  spike = true;
-  res.json({ message: "Spike triggered" });
+app.post("/spike/loud", (req, res) => {
+  mode = "loud";
+  timeInState = 0;
+  res.json({ message: "Loud noise spike triggered" });
 });
 
-app.listen(PORT, () =>
-  console.log(`✅ HR Simulator running on port ${PORT}`)
-);
+app.post("/spike/persistent", (req, res) => {
+  mode = "persistent";
+  timeInState = 0;
+  res.json({ message: "Persistent noise spike triggered" });
+});
+
+app.post("/reset", (req, res) => {
+  baseline = Math.floor(Math.random() * (75 - 69 + 1)) + 69;
+  mode = "normal";
+  timeInState = 0;
+  targetHR = baseline;
+  res.json({ message: "Baseline reset", newBaseline: baseline });
+});
+
+app.listen(PORT, () => console.log(`✅ HR simulator running on port ${PORT}`));
