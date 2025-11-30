@@ -1,89 +1,49 @@
-const hrDisplay = document.getElementById("hr");
-const baselineDisplay = document.getElementById("baseline");
-const btnLoud = document.getElementById("btnLoud");
-const btnPersistent = document.getElementById("btnPersistent");
-const btnReset = document.getElementById("btnReset");
-const ctx = document.getElementById("hrChart").getContext("2d");
-
-const data = {
-  labels: [],
-  datasets: [{
-    label: 'Heart Rate (BPM)',
-    data: [],
-    borderColor: '#d92332',
-    backgroundColor: 'rgba(217,35,50,0.2)',
-    borderWidth: 2,
-    tension: 0.3,
-    pointRadius: 0
-  }]
-};
-
-const chart = new Chart(ctx, {
-  type: 'line',
-  data,
-  options: {
-    scales: {
-      x: { display: false },
-      y: { suggestedMin: 50, suggestedMax: 130, title: { display: true, text: "BPM" } }
-    },
-    plugins: { legend: { display: false } }
-  }
-});
-
-let spikeActive = false;
-
-async function updateHR() {
-  try {
-    const res = await fetch("/hr");
-    const json = await res.json();
-    const hr = json.hr;
-    const mode = json.mode;
-    const baseline = json.baseline;
-
-    hrDisplay.textContent = `${hr} BPM`;
-    baselineDisplay.textContent = `Baseline: ${baseline} BPM`;
-
-    const now = new Date().toLocaleTimeString();
-    data.labels.push(now);
-    data.datasets[0].data.push(hr);
-    if (data.labels.length > 30) { data.labels.shift(); data.datasets[0].data.shift(); }
-    chart.update("none");
-
-    if (mode !== "normal") {
-      spikeActive = true;
-      if (mode === "loud") btnLoud.classList.add("active");
-      if (mode === "persistent") btnPersistent.classList.add("active");
-      btnLoud.disabled = true;
-      btnPersistent.disabled = true;
-      btnReset.disabled = true;
-    } else if (spikeActive) {
-      spikeActive = false;
-      btnLoud.classList.remove("active");
-      btnPersistent.classList.remove("active");
-      btnLoud.disabled = false;
-      btnPersistent.disabled = false;
-      btnReset.disabled = false;
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Heart Rate Simulator ❤️</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 30px;
+      background-color: #f9f9f9;
     }
-
-  } catch (err) {
-    hrDisplay.textContent = "Error fetching data";
-  }
-}
-
-async function triggerSpike(type) {
-  await fetch(`/spike/${type}`, { method: "POST" });
-}
-
-async function resetBaseline() {
-  btnReset.disabled = true;
-  btnLoud.disabled = true;
-  btnPersistent.disabled = true;
-  await fetch("/reset", { method: "POST" });
-  setTimeout(() => {
-    btnReset.disabled = false;
-    btnLoud.disabled = false;
-    btnPersistent.disabled = false;
-  }, 3000);
-}
-
-setInterval(updateHR, 1000);
+    h1 { color: #333; }
+    #hr { font-size: 48px; margin: 10px 0; color: #d92332; }
+    canvas {
+      max-width: 600px; margin-top: 30px;
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    button {
+      font-size: 18px;
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 10px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover:not(:disabled) { background-color: #0056b3; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .active { background-color: #c82333 !important; }
+    #baseline { font-size: 20px; color: #555; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Heart Rate Simulator ❤️</h1>
+  <div id="hr">-- BPM</div>
+  <div id="baseline">Baseline: -- BPM</div>
+  <div>
+    <button id="btnLoud" onclick="triggerSpike('loud')">Loud Noise 🔊</button>
+    <button id="btnPersistent" onclick="triggerSpike('persistent')">Persistent Noise 🌫️</button>
+    <button id="btnReset" onclick="resetBaseline()">Reset Baseline 🔄</button>
+  </div>
+  <canvas id="hrChart" width="600" height="300"></canvas>
+  <script src="client.js"></script>
+</body>
+</html>
