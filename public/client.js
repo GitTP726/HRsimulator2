@@ -34,31 +34,48 @@ const chart = new Chart(ctx, {
   }
 });
 
+let mode = "normal";
+
 async function updateHR() {
   try {
     const res = await fetch("/hr");
     const json = await res.json();
 
+    mode = json.mode;
     hrDisplay.textContent = `${json.hr} BPM`;
     baselineDisplay.textContent = `Baseline: ${json.baseline} BPM`;
 
+    // chart update
     const now = new Date().toLocaleTimeString();
     data.labels.push(now);
     data.datasets[0].data.push(json.hr);
-
-    if (data.labels.length > 30) {
+    if (data.labels.length > 40) {
       data.labels.shift();
       data.datasets[0].data.shift();
     }
-
     chart.update("none");
+
+    // Disable buttons while busy
+    const busy = mode !== "normal";
+    btnLoud.disabled = busy;
+    btnPersistent.disabled = busy;
+    btnReturn.disabled = (mode === "normal");
   } catch (err) {
     hrDisplay.textContent = "Error fetching data";
   }
 }
 
-btnLoud.onclick = () => fetch("/spike/loud", { method: "POST" });
-btnPersistent.onclick = () => fetch("/spike/persistent", { method: "POST" });
-btnReturn.onclick = () => fetch("/return", { method: "POST" });
+btnLoud.onclick = async () => {
+  btnLoud.disabled = btnPersistent.disabled = btnReturn.disabled = true;
+  await fetch("/spike/loud", { method: "POST" });
+};
+btnPersistent.onclick = async () => {
+  btnLoud.disabled = btnPersistent.disabled = btnReturn.disabled = true;
+  await fetch("/spike/persistent", { method: "POST" });
+};
+btnReturn.onclick = async () => {
+  btnLoud.disabled = btnPersistent.disabled = btnReturn.disabled = true;
+  await fetch("/return", { method: "POST" });
+};
 
 setInterval(updateHR, 1000);
