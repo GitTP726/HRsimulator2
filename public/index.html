@@ -1,49 +1,60 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Heart Rate Simulator ❤️</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Heart Rate Simulator</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css" />
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      margin: 30px;
-      background-color: #f9f9f9;
+      background-color: #fefefe;
+      margin: 0;
+      padding: 2rem;
     }
-    h1 { color: #333; }
-    #hr { font-size: 48px; margin: 10px 0; color: #d92332; }
-    canvas {
-      max-width: 600px; margin-top: 30px;
-      background: #fff; border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    h1 {
+      color: #c91e1e;
+    }
+    #hr {
+      font-size: 2rem;
+      margin: 1rem 0;
     }
     button {
-      font-size: 18px;
-      padding: 10px 20px;
-      margin: 5px;
+      margin: 0.5rem;
+      padding: 0.75rem 1.5rem;
       border: none;
-      border-radius: 10px;
-      background-color: #007bff;
-      color: white;
+      border-radius: 6px;
+      font-size: 1rem;
       cursor: pointer;
+      transition: 0.2s;
     }
-    button:hover:not(:disabled) { background-color: #0056b3; }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-    .active { background-color: #c82333 !important; }
-    #baseline { font-size: 20px; color: #555; margin-top: 10px; }
+    #btnLoud { background: #d9534f; color: white; }
+    #btnPersistent { background: #f0ad4e; color: white; }
+    button:hover { opacity: 0.9; }
+    canvas {
+      margin-top: 2rem;
+      max-width: 700px;
+      width: 100%;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 <body>
-  <h1>Heart Rate Simulator ❤️</h1>
+  <h1>💓 Heart Rate Simulator</h1>
   <div id="hr">-- BPM</div>
-  <div id="baseline">Baseline: -- BPM</div>
+  <div id="baseline">Baseline: --</div>
+
   <div>
-    <button id="btnLoud" onclick="triggerSpike('loud')">Loud Noise 🔊</button>
-    <button id="btnPersistent" onclick="triggerSpike('persistent')">Persistent Noise 🌫️</button>
-    <button id="btnReset" onclick="resetBaseline()">Reset Baseline 🔄</button>
+    <button id="btnLoud">Loud Noise Spike</button>
+    <button id="btnPersistent">Persistent Spike</button>
   </div>
-  <canvas id="hrChart" width="600" height="300"></canvas>
+
+  <canvas id="hrChart"></canvas>
+
   <script src="client.js"></script>
 </body>
 </html>
