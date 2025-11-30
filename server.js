@@ -5,7 +5,7 @@ const path = require("path");
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
-// --- Helper functions ---
+// --- Helpers ---
 function rand(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -13,18 +13,25 @@ function smoothStep(current, target, factor = 0.1) {
   return current + (target - current) * factor;
 }
 
-// --- Core state ---
+// --- Core State ---
 let baseline = rand(69, 75);
 let hr = baseline;
 let targetHR = baseline;
 let mode = "normal";
 let timeInState = 0;
 
-// --- Reset spike mode ---
+// --- Reset & Recovery ---
 function resetToNormal() {
   mode = "normal";
   timeInState = 0;
-  console.log("Returning to normal baseline...");
+  console.log("Returned to normal baseline...");
+}
+
+// --- Gradual manual return ---
+function startManualReturn() {
+  mode = "returning";
+  timeInState = 0;
+  console.log("Manual return initiated...");
 }
 
 // --- Main HR update loop ---
@@ -33,31 +40,41 @@ setInterval(() => {
   const now = Date.now() / 1000;
 
   switch (mode) {
-    // NORMAL — gentle natural fluctuation
+    // -------------------------------------------------
     case "normal": {
-      const breathing = Math.sin((2 * Math.PI * now) / 12) * 2; // ±2 BPM breathing
-      const jitter = (Math.random() - 0.5) * 2; // ±1 BPM noise
+      const breathing = Math.sin((2 * Math.PI * now) / 12) * 2;
+      const jitter = (Math.random() - 0.5) * 2;
       targetHR = baseline + breathing + jitter;
       hr = smoothStep(hr, targetHR, 0.15);
       break;
     }
 
-    // LOUD NOISE — sudden +15 BPM spike
+    // -------------------------------------------------
     case "loud": {
-      if (timeInState <= 10) targetHR = baseline + 15;     // rise ≤10s
-      else if (timeInState <= 30) targetHR = baseline;     // recover by 30s
-      else resetToNormal();
+      if (timeInState <= 10) targetHR = baseline + 15;
+      else targetHR = baseline + 12; // sustain slightly above normal
       hr = smoothStep(hr, targetHR, 0.2);
       break;
     }
 
-    // PERSISTENT NOISE — slow +10 BPM over 60s, hold, then recover
+    // -------------------------------------------------
     case "persistent": {
-      if (timeInState <= 60) targetHR = baseline + (timeInState / 60) * 10; // ramp up 60s
-      else if (timeInState <= 120) targetHR = baseline + 10;                // hold 60s
-      else if (timeInState <= 180) targetHR = baseline;                     // recover 60s
-      else resetToNormal();
+      if (timeInState <= 60) targetHR = baseline + (timeInState / 60) * 10;
+      else targetHR = baseline + 10;
       hr = smoothStep(hr, targetHR, 0.1);
+      break;
+    }
+
+    // -------------------------------------------------
+    case "returning": {
+      // Smoothly drop HR back toward baseline over ~30 s
+      targetHR = baseline;
+      hr = smoothStep(hr, targetHR, 0.08);
+
+      // once within ±1 BPM of baseline, stop returning
+      if (Math.abs(hr - baseline) < 1.0) {
+        resetToNormal();
+      }
       break;
     }
   }
@@ -80,6 +97,11 @@ app.post("/spike/:type", (req, res) => {
     console.log("PERSISTENT spike triggered");
   }
   res.json({ success: true, mode });
+});
+
+app.post("/return", (req, res) => {
+  startManualReturn();
+  res.json({ success: true, mode: "returning" });
 });
 
 // --- Start server ---

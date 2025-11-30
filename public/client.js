@@ -2,6 +2,7 @@ const hrDisplay = document.getElementById("hr");
 const baselineDisplay = document.getElementById("baseline");
 const btnLoud = document.getElementById("btnLoud");
 const btnPersistent = document.getElementById("btnPersistent");
+const btnReturn = document.getElementById("btnReturn");
 const ctx = document.getElementById("hrChart").getContext("2d");
 
 const data = {
@@ -58,5 +59,6 @@ async function updateHR() {
 
 btnLoud.onclick = () => fetch("/spike/loud", { method: "POST" });
 btnPersistent.onclick = () => fetch("/spike/persistent", { method: "POST" });
+btnReturn.onclick = () => fetch("/return", { method: "POST" });
 
 setInterval(updateHR, 1000);
