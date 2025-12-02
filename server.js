@@ -5,7 +5,9 @@ const path = require("path");
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
-// ---------- Helper Functions ----------
+// Helper Functions
+
+// returns a random int between min and max
 function rand(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -13,15 +15,17 @@ function smoothStep(current, target, factor = 0.1) {
   return current + (target - current) * factor;
 }
 
-// ---------- State ----------
-let baseline = rand(69, 75);
-let hr = baseline;
+// simulation state variables
+let baseline = rand(69, 75); // random resting HR baseline between 69-75
+let hr = baseline; // current simulated HR
 let targetHR = baseline;
-let mode = "normal";
-let timeInState = 0;
-let returning = false;
+let mode = "normal"; // setting mode to normal as default
+let timeInState = 0; // tracks how long the simulator has been in the current state
+let returning = false; // indicates whether HR is actively returning baseline
 
-// ---------- Mode Control ----------
+// Mode Control
+
+// reset all state values to baseline (normal mode)
 function resetToNormal() {
   mode = "normal";
   returning = false;
@@ -29,6 +33,7 @@ function resetToNormal() {
   console.log("✅ Returned to normal baseline");
 }
 
+ // trigger a controlled manual recovry from a high HR
 function startManualReturn() {
   mode = "returning";
   returning = true;
@@ -36,24 +41,26 @@ function startManualReturn() {
   console.log("🟢 Manual return to baseline started");
 }
 
-// ---------- Main HR Loop ----------
+// Main HR Loop 
+
 setInterval(() => {
   timeInState += 0.5;
   const now = Date.now() / 1000;
 
   // base micro fluctuations for realism
-  const micro = (Math.random() - 0.5) * 2;             // ±1 BPM random noise
-  const breath = Math.sin((2 * Math.PI * now) / 12) * 2; // ±2 BPM slow wave
+  const micro = (Math.random() - 0.5) * 2;             // +-1 BPM random noise
+  const breath = Math.sin((2 * Math.PI * now) / 12) * 2; // +-2 BPM slow wave
 
+  // adjust HR behavior depending on mode, using a case statement
   switch (mode) {
-    // -------------------------------------------------------------
+
     case "normal": {
       targetHR = baseline + breath + micro;
       hr = smoothStep(hr, targetHR, 0.15);
       break;
     }
 
-    // -------------------------------------------------------------
+
     case "loud": {
       // +15 BPM spike in first 10s, hold until manual return
       const spike = baseline + 15;
@@ -63,7 +70,7 @@ setInterval(() => {
       break;
     }
 
-    // -------------------------------------------------------------
+  
     case "persistent": {
       // gradual +10 BPM rise over 60s, hold, then return manually
       const rise =
@@ -75,7 +82,7 @@ setInterval(() => {
       break;
     }
 
-    // -------------------------------------------------------------
+  
     case "returning": {
       // smooth recovery toward baseline with gentle fluctuation
       targetHR = baseline + micro;
@@ -88,7 +95,7 @@ setInterval(() => {
   }
 }, 500);
 
-// ---------- Endpoints ----------
+// Endpoints
 app.get("/hr", (req, res) => {
   res.json({ hr: Math.round(hr), baseline, mode });
 });
@@ -114,7 +121,7 @@ app.post("/return", (req, res) => {
   res.json({ success: true, mode: "returning" });
 });
 
-// ---------- Start Server ----------
+// Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`💓 HR Simulator running on port ${PORT}`)

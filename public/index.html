@@ -1,3 +1,13 @@
+<!--
+  index.html
+
+  Purpose:
+  - Displays a live HR monitor interface
+  - Provides buttons for triggering heart rate spikes (Loud / Persitent) and resetting to normal
+  - Includes a line chart for visulization
+  - connects to client.js
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,6 +22,11 @@
       background-color: #fefefe;
       margin: 0;
       padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center; /* centers everything horizontally */
+      justify-content: flex-start;
+      min-height: 100vh;
     }
     h1 { color: #d92332; margin-bottom: 0.5rem; }
     #hr { font-size: 2rem; margin: 1rem 0; }
@@ -32,10 +47,13 @@
     #btnReturn { background: #5cb85c; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
 
+    /* center and size chart */
     canvas {
-      margin-top: 2rem;
-      max-width: 700px;
-      width: 100%;
+      display: block;
+      margin-top: 2rem auto;
+      max-width: 600px;
+      width: 90%;
+      height: 300px;
       background: white;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
